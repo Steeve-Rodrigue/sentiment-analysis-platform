@@ -54,4 +54,7 @@ def tokenize_document(text: str, language: str = "english") -> list[list[str]]:
     chaque phrase. C'est la structure attendue par la plupart des étapes
     suivantes (POS tagging, dependency parsing), qui opèrent au niveau de
     la phrase, pas du document entier."""
-    return [rule_based_tokenize(sent, language=language) for sent in sentence_tokenize(text, language=language)]
+    return [
+        rule_based_tokenize(sent, language=language)
+        for sent in sentence_tokenize(text, language=language)
+    ]

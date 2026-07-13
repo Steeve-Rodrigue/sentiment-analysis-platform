@@ -5,15 +5,16 @@ Tests unitaires pour src/preprocessing/tokenization.py — chaque test
 correspond à un exemple vérifié manuellement pendant l'apprentissage.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from preprocessing.tokenization import (
-    whitespace_tokenize,
     rule_based_tokenize,
     sentence_tokenize,
     tokenize_document,
+    whitespace_tokenize,
 )
 
 

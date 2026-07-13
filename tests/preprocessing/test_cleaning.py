@@ -5,18 +5,19 @@ Tests unitaires pour src/preprocessing/cleaning.py — chaque test correspond
 à un exemple qu'on a vérifié manuellement pendant l'apprentissage.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from preprocessing.cleaning import (
-    normalize_unicode,
-    remove_urls,
-    process_hashtags,
-    demojize,
-    reduce_repeated_chars,
-    normalize_repeated_punctuation,
     clean_text,
+    demojize,
+    normalize_repeated_punctuation,
+    normalize_unicode,
+    process_hashtags,
+    reduce_repeated_chars,
+    remove_urls,
 )
 
 
@@ -28,7 +29,10 @@ def test_normalize_unicode_makes_nfc_and_nfd_equal():
 
 
 def test_remove_urls_strips_both_url_forms():
-    assert remove_urls("voir https://amazon.fr/produit/123 svp").strip() == "voir  svp".strip()
+    assert (
+        remove_urls("voir https://amazon.fr/produit/123 svp").strip()
+        == "voir  svp".strip()
+    )
     assert "www.site.com" not in remove_urls("aller sur www.site.com maintenant")
 
 

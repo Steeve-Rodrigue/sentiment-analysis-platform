@@ -62,9 +62,11 @@ def process_hashtags(text: str, mode: str = "split_camel") -> str:
     if mode == "remove":
         return HASHTAG_PATTERN.sub("", text)
     if mode == "split_camel":
+
         def _split(m: re.Match) -> str:
             word = m.group(1)
             return re.sub(r"(?<!^)(?=[A-Z])", " ", word)
+
         return HASHTAG_PATTERN.sub(_split, text)
     return HASHTAG_PATTERN.sub(r"\1", text)  # mode "unwrap"
 
@@ -82,13 +84,13 @@ def remove_emoji(text: str) -> str:
 
 
 def reduce_repeated_chars(text: str, max_repeat: int = 2) -> str:
-    """"sooooo" -> "soo" : garde l'emphase sans exploser le vocabulaire
+    """ "sooooo" -> "soo" : garde l'emphase sans exploser le vocabulaire
     avec chaque variante d'élongation."""
     return REPEATED_CHARS_PATTERN.sub(lambda m: m.group(1) * max_repeat, text)
 
 
 def normalize_repeated_punctuation(text: str) -> str:
-    """"!!!!" -> "!" """
+    """ "!!!!" -> "!" """
     return REPEATED_PUNCT_PATTERN.sub(r"\1", text)
 
 
