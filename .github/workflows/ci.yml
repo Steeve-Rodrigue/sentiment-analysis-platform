@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: install uv
+      uses: astral-sh/setup-uv@v3
+
+    - name: setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: install dependencies
+      run: uv sync --group dev
+
+    - name: Download NLTK data
+      run: uv run python scripts/setup_nltk_data.py
+
+    - name: run lint
+      run: uv run --group dev ruff check .
+
+    - name: run format check
+      run: uv run --group dev ruff format --check .
+
+    - name: run tests
+      run: uv run pytest -v --disable-warnings --maxfail=1
