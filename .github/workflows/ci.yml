@@ -25,7 +25,7 @@ jobs:
       run: uv sync --group dev
 
     - name: Download NLTK data
-      run: uv run python scripts/setup_nltk_data.py
+      run: uv run python scripts/setup_nltk.py
 
     - name: run lint
       run: uv run --group dev ruff check .
