@@ -12,4 +12,14 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "pre-commit>=4.0.0",
+    "ruff>=0.8.0",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+extend-exclude = []
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
