@@ -15,16 +15,31 @@ needs one of these resources.
 """
 
 import nltk
+from spacy.cli import download
 
 REQUIRED_NLTK_PACKAGES = [
     "punkt_tab",  # sentence & word tokenization (Punkt model)
     "averaged_perceptron_tagger_eng",  # POS tagging
     "wordnet",  # lemmatization (WordNet dictionary)
     "stopwords",  # stop-word lists per language
+    "maxent_ne_chunker_tab",  # named entity recognition
+    "words",  # word lists
+]
+
+REQUIRED_SPACY_MODELS = [
+    "en_core_web_sm",
+    # "es_core_news_sm",  # uncomment when Phase 8/9 needs Spanish dependency parsing
+    # "de_core_news_sm",  # uncomment when Phase 8/9 needs German dependency parsing
+    # "fr_core_news_sm",  # uncomment when Phase 8/9 needs French dependency parsing
 ]
 
 
 def main() -> None:
+    for model_name in REQUIRED_SPACY_MODELS:
+        print(f"Downloading spaCy model: {model_name}")
+        download(model_name)
+    print("\nAll required spaCy models downloaded successfully.")
+
     for package in REQUIRED_NLTK_PACKAGES:
         print(f"Downloading NLTK package: {package}")
         nltk.download(package)
