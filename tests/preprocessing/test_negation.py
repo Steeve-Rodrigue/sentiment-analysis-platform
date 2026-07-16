@@ -43,3 +43,14 @@ def test_marked_token_survives_stopword_removal():
     marked = mark_negation_scope(tokens)
     after_stopwords = remove_stopwords(marked)
     assert "good_NEG" in after_stopwords
+
+
+def test_negation_scope_stops_at_contrast_word_without_punctuation():
+    # régression : bug réel trouvé en testant pipeline.py de bout en bout
+    # sur un avis sans virgule avant "but" -- "great" se retrouvait marqué
+    # "great_NEG" à tort, alors que "but" introduit un sentiment opposé.
+    tokens = ["was", "not", "good", "but", "great"]
+    result = mark_negation_scope(tokens)
+    assert "good_NEG" in result
+    assert "great" in result
+    assert "great_NEG" not in result

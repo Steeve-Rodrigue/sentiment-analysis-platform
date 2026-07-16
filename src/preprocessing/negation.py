@@ -25,19 +25,26 @@ from __future__ import annotations
 
 NEGATION_WORDS = {"not", "no", "never", "n't", "cannot", "nothing", "neither", "nor"}
 PUNCTUATION = {".", "!", "?", ",", ";", ":"}
+# Les conjonctions de contraste arrêtent aussi la portée de la négation,
+# même sans ponctuation -- bug réel trouvé en testant le pipeline complet
+# sur un avis sans virgule avant "but" (voir la conversation associée) :
+# sans ce garde-fou, "not good but great" marquait à tort "great" comme négatif.
+CONTRAST_WORDS = {"but", "however", "although", "though", "yet"}
 
 
 def mark_negation_scope(tokens: list[str]) -> list[str]:
     """Ajoute le suffixe "_NEG" à chaque token situé entre un mot de
-    négation et la ponctuation suivante (la portée de la négation
-    s'arrête à la ponctuation, pas à la fin de la phrase entière)."""
+    négation et la prochaine ponctuation OU conjonction de contraste
+    (la portée de la négation s'arrête à l'un ou l'autre, pas seulement
+    à la fin de la phrase entière)."""
     result = []
     negating = False
     for token in tokens:
-        if token.lower() in NEGATION_WORDS:
+        token_lower = token.lower()
+        if token_lower in NEGATION_WORDS:
             result.append(token)
             negating = True
-        elif token in PUNCTUATION:
+        elif token in PUNCTUATION or token_lower in CONTRAST_WORDS:
             result.append(token)
             negating = False
         elif negating:
