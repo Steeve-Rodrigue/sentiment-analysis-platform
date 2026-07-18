@@ -54,3 +54,12 @@ def build_ngram_vectorizer(
     vectorizer = VectorizerClass(ngram_range=ngram_range)
     vectors = vectorizer.fit_transform(documents)
     return vectors, vectorizer
+
+
+def build_char_ngrams(
+    documents: list[str], ngram_range: tuple = (3, 3), use_tfidf: bool = True
+):
+    VectorizerClass = TfidfVectorizer if use_tfidf else CountVectorizer
+    vectorizer = VectorizerClass(analyzer="char", ngram_range=ngram_range)
+    vectors = vectorizer.fit_transform(documents)
+    return vectors, vectorizer
