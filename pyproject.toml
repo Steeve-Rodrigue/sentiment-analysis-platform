@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "emoji>=2.15.0",
+    "gensim>=4.4.0",
     "langdetect>=1.0.9",
     "nltk>=3.10.0",
     "numpy>=2.4.6",
