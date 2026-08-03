@@ -17,6 +17,8 @@ needs one of these resources.
 import nltk
 from spacy.cli import download
 
+nltk.download("movie_reviews")
+
 REQUIRED_NLTK_PACKAGES = [
     "punkt_tab",  # sentence & word tokenization (Punkt model)
     "averaged_perceptron_tagger_eng",  # POS tagging
