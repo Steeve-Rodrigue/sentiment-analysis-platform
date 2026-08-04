@@ -26,8 +26,8 @@ def test_trains_and_predicts():
 def test_forest_beats_single_tree():
     # verifie le principe du bagging : la foret doit corriger
     # l'instabilite de l'arbre unique (verifie : 0.792 vs 0.682)
-    from classical_ml.decision_tree_model import evaluate_model as eval_tree
-    from classical_ml.decision_tree_model import train_decision_tree
+    from classical_ml.decision_tree import evaluate_model as eval_tree
+    from classical_ml.decision_tree import train_decision_tree
 
     X_train, X_test, y_train, y_test = load_movie_reviews()
 
