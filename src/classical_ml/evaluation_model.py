@@ -9,38 +9,6 @@ arbres, boosting) pour évaluer leurs performances de façon rigoureuse.
 
 --- VALIDATION CROISÉE ---
 
-Théorie résumée (voir la conversation associée pour le détail) :
-Un score obtenu sur UN SEUL découpage train/test est fragile -- il
-dépend du hasard du tirage. La K-fold cross-validation découpe les
-données en K parts, entraîne K fois (chaque part servant une fois de
-test), et retourne la moyenne ET l'écart-type des K scores.
-
-Vérifié empiriquement sur movie_reviews (5 folds) :
-    Naive Bayes          0.810 ± 0.025  (scores : 0.775 à 0.845 !)
-    Logistic Regression  0.824 ± 0.021
-    Linear SVM           0.838 ± 0.020
-
-L'enseignement clé : Naive Bayes varie de 7 POINTS selon le découpage.
-L'écart SVM vs LogisticRegression (1.4 pt) est plus PETIT que
-l'écart-type (~2 pts) -- cette différence n'est donc pas clairement
-significative. En revanche, l'écart SVM vs Naive Bayes (2.8 pts)
-dépasse l'écart-type, et là on peut raisonnablement conclure.
-La validation croisée empêche de sur-interpréter de petits écarts qui
-ne sont que du bruit d'échantillonnage.
-
---- PIÈGE CRITIQUE : LA FUITE DE DONNÉES ---
-
-Il faut IMPÉRATIVEMENT utiliser un Pipeline (vectorizer + modèle) plutôt
-que de vectoriser tout le dataset avant la CV. Sinon le vectorizer
-calcule son vocabulaire ET ses poids IDF en "voyant" les données de test
-de chaque fold -- une fuite (data leakage) qui gonfle artificiellement
-les scores.
-
-Vérifié empiriquement : sur un exemple jouet, l'IDF du mot "delivery"
-vaut 1.8473 si le fit inclut le test, contre 1.5108 si le fit ne voit
-que le train. Et le vocabulaire contient alors des mots exclusifs au
-test. Le pipeline garantit que le vectorizer est re-entraîné uniquement
-sur le train de chaque fold.
 
 --- MATRICE DE CONFUSION ---
 
@@ -72,10 +40,6 @@ modèle sépare très bien. Interprétation directe : si on tire au hasard
 un avis positif et un négatif, le modèle donne une probabilité plus
 élevée au positif dans 90.7% des cas.
 
-Avantage clé : l'AUC est indépendante du seuil ET robuste au
-déséquilibre des classes, contrairement à l'accuracy (rappel du modèle
-"paresseux" qui affichait 90% d'accuracy en prédisant toujours la
-classe majoritaire).
 """
 
 from __future__ import annotations
