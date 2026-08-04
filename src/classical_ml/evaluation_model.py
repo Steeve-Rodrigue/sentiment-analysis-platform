@@ -9,46 +9,20 @@ arbres, boosting) pour évaluer leurs performances de façon rigoureuse.
 
 --- VALIDATION CROISÉE ---
 
-
 --- MATRICE DE CONFUSION ---
-
-Tableau croisant vérité et prédiction. Son intérêt par rapport à
-l'accuracy : elle montre si le modèle est BIAISÉ DANS UNE DIRECTION.
-
-Vérifié empiriquement (Logistic Regression sur movie_reviews) :
-    41 faux positifs (avis négatifs prédits positifs)
-    28 faux négatifs (avis positifs prédits négatifs)
-Le modèle se trompe donc plutôt en annonçant "positif" à tort --
-asymétrie invisible dans le score d'accuracy global, mais qui explique
-pourquoi le rappel de "neg" (0.830) dépassait celui de "pos" (0.785).
 
 --- COURBE ROC ET AUC ---
 
-Un classifieur ne renvoie pas directement une classe : il calcule une
-PROBABILITÉ, puis applique un SEUIL (0.5 par défaut) pour trancher. Ce
-seuil est un choix arbitraire. La courbe ROC trace, pour TOUS les
-seuils possibles, le taux de vrais positifs contre le taux de faux
-positifs. L'AUC (aire sous la courbe) résume le tout :
-    AUC = 1.0  -> séparation parfaite
-    AUC = 0.5  -> équivalent au hasard
-    AUC > 0.8  -> généralement considéré comme bon
-
-Vérifié empiriquement : AUC = 0.907 pour Logistic Regression, nettement
-supérieur à son accuracy (0.828). Pas de contradiction : l'accuracy
-juge au seuil 0.5 uniquement, l'AUC dit qu'il EXISTE des seuils où le
-modèle sépare très bien. Interprétation directe : si on tire au hasard
-un avis positif et un négatif, le modèle donne une probabilité plus
-élevée au positif dans 90.7% des cas.
-
+--- RECHERCHE D'HYPERPARAMÈTRES (GridSearchCV) ---
 """
 
 from __future__ import annotations
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import confusion_matrix, roc_auc_score, roc_curve
-from sklearn.model_selection import StratifiedKFold, cross_val_score
-from sklearn.pipeline import make_pipeline
+from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, roc_curve
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_score
+from sklearn.pipeline import Pipeline, make_pipeline
 
 
 def cross_validate_model(
@@ -204,4 +178,91 @@ def find_best_threshold(roc_result: dict) -> dict:
         "tpr": float(roc_result["tpr"][idx]),
         "fpr": float(roc_result["fpr"][idx]),
         "youden_index": float(youden[idx]),
+    }
+
+
+# Grille par défaut : explore conjointement la VECTORISATION et le
+# CLASSIFIEUR. Les clés "tfidf__*" et "clf__*" ciblent les étapes
+# nommées du pipeline construit dans grid_search_model().
+DEFAULT_PARAM_GRID = {
+    "tfidf__max_features": [2000, 5000, 10000],
+    "tfidf__ngram_range": [(1, 1), (1, 2)],
+    "clf__C": [0.1, 1.0, 10.0],
+}
+
+
+def grid_search_model(
+    classifier,
+    X_train: list[str],
+    y_train: list[str],
+    param_grid: dict | None = None,
+    n_splits: int = 5,
+    scoring: str = "accuracy",
+    random_state: int = 42,
+    n_jobs: int = -1,
+):
+    """Recherche exhaustive des meilleurs hyperparamètres par validation
+    croisée, sur le TRAIN uniquement.
+
+    `classifier` doit être un estimateur non entraîné. La grille par
+    défaut suppose un classifieur exposant un paramètre C (LinearSVC,
+    LogisticRegression) -- fournir sa propre `param_grid` sinon
+    (ex. {"clf__max_depth": [3, 5, 10]} pour un arbre).
+
+    ATTENTION au coût : le nombre d'entraînements est le produit de
+    toutes les valeurs de la grille × n_splits. Une grille de 18
+    combinaisons avec 5 folds = 90 entraînements.
+
+    Retourne l'objet GridSearchCV entraîné -- il se comporte comme un
+    modèle (predict, predict_proba) en utilisant automatiquement les
+    meilleurs paramètres trouvés."""
+    param_grid = param_grid if param_grid is not None else DEFAULT_PARAM_GRID
+
+    pipeline = Pipeline(
+        [
+            ("tfidf", TfidfVectorizer(stop_words="english")),
+            ("clf", classifier),
+        ]
+    )
+
+    search = GridSearchCV(
+        pipeline,
+        param_grid,
+        cv=StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state),
+        scoring=scoring,
+        n_jobs=n_jobs,
+    )
+    search.fit(X_train, y_train)
+    return search
+
+
+def summarize_grid_search(
+    search, X_test: list[str], y_test: list[str], top_n: int = 5
+) -> dict:
+    """Résume les résultats d'une recherche : meilleurs paramètres,
+    score CV, score final sur le test, et les top_n combinaisons.
+
+    L'écart entre best_cv_score et test_accuracy est attendu et sain :
+    le score CV est optimiste car la recherche a sélectionné la
+    combinaison la plus favorable parmi toutes celles testées."""
+    test_accuracy = accuracy_score(y_test, search.predict(X_test))
+
+    resultats = search.cv_results_
+    ordre = np.argsort(resultats["rank_test_score"])[:top_n]
+    top = [
+        {
+            "params": resultats["params"][i],
+            "mean_score": float(resultats["mean_test_score"][i]),
+            "std_score": float(resultats["std_test_score"][i]),
+        }
+        for i in ordre
+    ]
+
+    return {
+        "best_params": search.best_params_,
+        "best_cv_score": float(search.best_score_),
+        "test_accuracy": float(test_accuracy),
+        "optimism_gap": float(search.best_score_ - test_accuracy),
+        "top_combinations": top,
+        "n_combinations_tested": len(resultats["params"]),
     }

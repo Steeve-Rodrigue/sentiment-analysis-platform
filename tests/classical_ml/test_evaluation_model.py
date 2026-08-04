@@ -165,3 +165,68 @@ def test_find_best_threshold_returns_point_on_curve():
     assert 0.0 <= best["tpr"] <= 1.0
     assert 0.0 <= best["fpr"] <= 1.0
     assert best["youden_index"] > 0  # meilleur que la diagonale du hasard
+
+
+def test_grid_search_finds_parameters_and_predicts():
+    from classical_ml.evaluation_model import grid_search_model
+
+    X_train, X_test, y_train, y_test = load_movie_reviews()
+    # grille volontairement minuscule pour garder le test rapide
+    petite_grille = {
+        "tfidf__max_features": [1000, 2000],
+        "clf__C": [0.1, 1.0],
+    }
+    search = grid_search_model(
+        LinearSVC(max_iter=2000),
+        X_train,
+        y_train,
+        param_grid=petite_grille,
+        n_splits=3,
+    )
+
+    assert "clf__C" in search.best_params_
+    assert "tfidf__max_features" in search.best_params_
+    assert 0.0 <= search.best_score_ <= 1.0
+    # l'objet entraine se comporte comme un modele
+    predictions = search.predict(X_test)
+    assert len(predictions) == len(y_test)
+
+
+def test_grid_search_summary_reports_optimism_gap():
+    from classical_ml.evaluation_model import grid_search_model, summarize_grid_search
+
+    X_train, X_test, y_train, y_test = load_movie_reviews()
+    petite_grille = {"clf__C": [0.1, 1.0], "tfidf__max_features": [1000]}
+    search = grid_search_model(
+        LinearSVC(max_iter=2000),
+        X_train,
+        y_train,
+        param_grid=petite_grille,
+        n_splits=3,
+    )
+    resume = summarize_grid_search(search, X_test, y_test)
+
+    assert resume["n_combinations_tested"] == 2
+    assert 0.0 <= resume["test_accuracy"] <= 1.0
+    assert len(resume["top_combinations"]) <= 5
+    # l'ecart d'optimisme existe (peut etre positif ou negatif selon le tirage)
+    assert "optimism_gap" in resume
+
+
+def test_grid_search_accepts_custom_grid_for_non_c_models():
+    # verifie que la fonction n'est pas verrouillee sur les modeles
+    # exposant un parametre C -- un arbre utilise max_depth
+    from sklearn.tree import DecisionTreeClassifier
+
+    from classical_ml.evaluation_model import grid_search_model
+
+    X_train, X_test, y_train, y_test = load_movie_reviews()
+    grille_arbre = {"clf__max_depth": [3, 5], "tfidf__max_features": [500]}
+    search = grid_search_model(
+        DecisionTreeClassifier(random_state=42),
+        X_train,
+        y_train,
+        param_grid=grille_arbre,
+        n_splits=3,
+    )
+    assert search.best_params_["clf__max_depth"] in [3, 5]
