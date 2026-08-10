@@ -27,6 +27,9 @@ vérifier vous-même en local).
 from __future__ import annotations
 
 import numpy as np
+import torch
+
+from transformers import AutoModel, AutoTokenizer
 
 
 def get_sentence_embeddings(
@@ -61,8 +64,6 @@ def get_contextual_word_vectors(
     BERT. Contrairement à get_word_vector() (Word2Vec/FastText/GloVe),
     le même mot dans deux phrases différentes donnera deux vecteurs
     différents ici."""
-    import torch
-    from transformers import AutoModel, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
