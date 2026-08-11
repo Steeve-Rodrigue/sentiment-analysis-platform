@@ -29,7 +29,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from transformers import AutoModel, AutoTokenizer
+from transformers_arch import AutoModel, AutoTokenizer
 
 
 def get_sentence_embeddings(
