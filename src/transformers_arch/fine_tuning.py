@@ -103,7 +103,7 @@ def fine_tune_model(
     model,
     train_dataset,
     eval_dataset,
-    output_dir: str = "./distilbert-sentiment",
+    output_dir: str = "../../distilbert-sentiment",
     epochs: int = 2,
     learning_rate: float = 2e-5,
     batch_size: int = 16,
