@@ -6,6 +6,8 @@ Phase 6 -- Transformers -- bloc "fine-tuning DistilBERT".
 PREMIER MODELE REEL DE TOUT LE PROJET A ETRE POUSSE SUR HUGGING FACE
 (voir docs/huggingface_guide.md pour le code de publication).
 
+Theorie resumee (voir la conversation associee pour le detail) :
+
 Contrairement a tous les modeles de la Phase 5 (poids ALEATOIRES,
 tout appris depuis zero sur 1600 exemples), DistilBERT a deja ete
 entraine par Hugging Face sur des MILLIARDS de mots (Wikipedia +
@@ -14,13 +16,7 @@ CONTINUER cet entrainement, avec un taux d'apprentissage tres faible
 et peu d'epoques, pour adapter le modele a la tache de sentiment sans
 detruire ce qu'il sait deja.
 
-NOTE IMPORTANTE (verifiee empiriquement) : ce module necessite un
-acces reseau a huggingface.co pour telecharger le modele -- bloque
-dans l'environnement sandbox utilise pour ecrire ce code (meme erreur
-que sentence-transformers et spaCy en Phases 2 et 3). Le code est
-correct et pret a l'emploi, mais la VERIFICATION reelle (chiffres
-observes) doit se faire sur votre machine -- voir le fichier
-d'experimentation associe pour les instructions completes.
+
 
 DistilBERT est une version COMPRESSEE de BERT (distillation de
 connaissances) : ~40% de parametres en moins, ~60% plus rapide,
@@ -44,12 +40,20 @@ def compute_metrics(eval_pred) -> dict:
     """Calcule accuracy et F1 a partir des predictions brutes du
     Trainer. SANS cette fonction, Trainer.evaluate() ne retourne QUE
     la perte (eval_loss) -- bug reel rencontre en testant : la cle
-    'eval_accuracy' etait absente du dict retourne, donnant nan."""
+    'eval_accuracy' etait absente du dict retourne, donnant nan.
+
+    average="macro" (PAS le defaut "binary" de sklearn) : bug reel
+    rencontre en reutilisant cette fonction pour l'ABSA (Phase 9, 3
+    classes negative/neutral/positive) -- f1_score(average="binary")
+    leve une ValueError explicite sur des labels multi-classe
+    ("Target is multiclass but average='binary'"). "macro" fonctionne
+    pour le binaire ET le multi-classe, rendant cette fonction
+    reutilisable telle quelle dans les deux contextes."""
     logits, labels = eval_pred
     predictions = np.argmax(logits, axis=-1)
     return {
         "accuracy": accuracy_score(labels, predictions),
-        "f1": f1_score(labels, predictions),
+        "f1": f1_score(labels, predictions, average="macro"),
     }
 
 
@@ -59,10 +63,21 @@ def load_pretrained_classifier(
     """Charge un tokenizer et un modele DistilBERT pre-entraine, avec
     une tete de classification NEUVE (poids aleatoires) ajoutee par
     dessus le corps pre-entraine -- seule cette tete part de zero,
-    le reste du modele part deja "sachant lire"."""
+    le reste du modele part deja "sachant lire".
+
+    id2label/label2id : SANS ces mappings, le pipeline HF affiche
+    "LABEL_0"/"LABEL_1" au lieu de "negative"/"positive" -- bug reel
+    rencontre en testant le modele publie, ou la sortie affichait
+    LABEL_1 sans indication claire de ce que ca signifie."""
+    id2label = {0: "negative", 1: "positive"}
+    label2id = {"negative": 0, "positive": 1}
+
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(
-        model_name, num_labels=num_labels
+        model_name,
+        num_labels=num_labels,
+        id2label=id2label,
+        label2id=label2id,
     )
     return model, tokenizer
 
@@ -103,7 +118,7 @@ def fine_tune_model(
     model,
     train_dataset,
     eval_dataset,
-    output_dir: str = "../../distilbert-sentiment",
+    output_dir: str = "./distilbert-sentiment",
     epochs: int = 2,
     learning_rate: float = 2e-5,
     batch_size: int = 16,
