@@ -48,6 +48,66 @@ ASPECT_CATEGORIES = [
 ]
 
 
+def load_semeval_absa(
+    dataset_name: str = "tomaarsen/setfit-absa-semeval-restaurants",
+    test_size: float = 0.2,
+    random_state: int = 42,
+):
+    """Charge un vrai dataset ABSA (SemEval), le convertit en triples
+    (texte, aspect, label), et le decoupe en train/eval -- UN SEUL
+    appel, UN SEUL chargement, toujours le meme comportement (pas de
+    logique conditionnelle selon les splits disponibles sur le Hub).
+
+    Remplace le jeu jouet de 10 phrases repetees (voir
+    absa_experiments.txt) qui, verifie empiriquement, menait le modele
+    a un raccourci (mot d'aspect -> etiquette fixe) plutot qu'a une
+    vraie lecture du contexte.
+
+    Retourne (train_textes, train_aspects, train_labels,
+    eval_textes, eval_aspects, eval_labels)."""
+    from datasets import load_dataset
+    from sklearn.model_selection import train_test_split
+
+    ds = load_dataset(dataset_name, split="train")
+    print(f"Colonnes : {ds.column_names}  |  {len(ds)} lignes brutes")
+
+    label_map = {"negative": 0, "neutral": 1, "positive": 2}
+    texts, aspects, labels = [], [], []
+
+    for row in ds:
+        text = row.get("text")
+        aspect = row.get("span") or row.get("aspect")
+        raw_label = row.get("label")
+        label = (
+            label_map.get(raw_label.lower())
+            if isinstance(raw_label, str)
+            else raw_label
+        )
+        if text and aspect and label is not None:
+            texts.append(text)
+            aspects.append(aspect)
+            labels.append(label)
+
+    print(f"{len(texts)} exemples valides extraits")
+
+    idx = list(range(len(texts)))
+    idx_train, idx_eval = train_test_split(
+        idx, test_size=test_size, random_state=random_state
+    )
+
+    def _select(items, indices):
+        return [items[i] for i in indices]
+
+    return (
+        _select(texts, idx_train),
+        _select(aspects, idx_train),
+        _select(labels, idx_train),
+        _select(texts, idx_eval),
+        _select(aspects, idx_eval),
+        _select(labels, idx_eval),
+    )
+
+
 def extract_aspect_candidates(text: str) -> list[str]:
     """Extrait des aspects candidats via la baseline grammaticale de
     la Phase 1 (groupes nominaux consecutifs). Premiere etape de
